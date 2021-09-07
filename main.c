@@ -1,6 +1,6 @@
 /*
 Author:	Giovanni Bellini
-Date:	04/09/2021
+Date:	07/09/2021
 
 Description:
 an hashtable library
@@ -166,6 +166,41 @@ node *search(char *key_type, union key key)
 	return NULL;
 }
 
+node **previousEl(char *key_type, union key key)
+{
+	node *p;
+	node **previous = &root[hash(key_type, key)];
+	for(p = root[hash(key_type, key)]; p != NULL; p = p->next)
+	{
+		if(strcmp(key_type, "char") == 0) // if the type of the key is char
+		{
+			if(strcmp(p->key.char_key, key.char_key) == 0) // if the key match with the key passed
+			{
+				return previous;
+			}
+			else
+			{
+				previous = &p->next;
+			}
+		}
+		else if(strcmp(key_type, "int") == 0)
+		{
+			if(p->key.int_key == key.int_key)
+			{
+				return previous;
+			}
+			else
+			{
+				previous = &p->next;
+			}
+		}
+		else
+		{
+			return NULL; // find a method to advise that a wrong type has been typed
+		}
+	}
+}
+
 node *lastEl(int hash) // search for last element if there is one
 {
 	node *p;
@@ -207,13 +242,13 @@ int add(char *key_type, char *value_type, union key key, union value value)
 		if(valid_value_type(value_type))
 		{
 			p->value_type = value_type;
-			p->value = value;
 		}
 		else
 		{
 			p->value_type = "char";
-			p->value = value;
 		}
+		
+		p->value = value;
 		
 		p->next = NULL;
 		
@@ -225,6 +260,28 @@ int add(char *key_type, char *value_type, union key key, union value value)
 			last->next = p;
 		}
 		return 1; // operation successfull
+	}
+	return 0;
+}
+
+
+//###################################################//
+//## DELETE                                        ##//
+//###################################################//
+int del(char *key_type, union key key)
+{
+	if(valid_key_type(key_type))
+	{
+		node *p;
+		node **previous;
+		if((p = search(key_type, key)) != NULL) // se l'elemento esiste
+		{
+			previous = previousEl(key_type, key);
+			*previous = p->next;;
+				
+			//completely free the node
+			free((void *) p);
+		}
 	}
 	return 0;
 }
@@ -295,5 +352,10 @@ void main()
 	add("int", "float", int_key(50), float_value(11.5));
 	add("char", "float", char_key("ciao:)"), float_value(33.66));
 	
+	printAllEl();
+	
+	del("char", char_key("ciao"));
+	
+	printf("\n");
 	printAllEl();
 }

@@ -17,36 +17,7 @@ scheme:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define HASHSIZE 100
-
-
-//###################################################//
-//## NODE STRUCTURE                                ##//
-//###################################################//
-union key
-{
-	char *char_key;
-	int int_key;
-};
-
-union value
-{
-	char *char_value;
-	int int_value;
-	float float_value;
-};
-
-typedef struct node
-{
-	char *key_type;
-	char *value_type;
-	union value value;
-	union key key; // needed to distinguish the element in case of collision
-	struct node *next;
-}
-node;
-
+#include "hash_table_class.h"
 
 //###################################################//
 //## TYPE FUNCTIONS                                ##//
@@ -97,23 +68,28 @@ union value float_value(float value)
 
 
 //###################################################//
-//## POINTER TABLE && INITIALIZER                  ##//
+//## INITIALIZER                                   ##//
 //###################################################//
-static node *root[HASHSIZE];
-
-void initialize()
+//static node *root[HASHSIZE];
+void init(HashTable *self)
 {
-	for(int i = 0; i < HASHSIZE; i++)
+	self->HASHSIZE = 100;
+	
+	for(int i = 0; i < self->HASHSIZE; i++)
 	{
-		root[i] = NULL;
+		self->root[i] = NULL;
 	}
+	
+	self->Search = &search;
+	self->Add = &add;
+	self->Delete = &del;
 }
 
 
 //###################################################//
 //## HASH                                          ##//
 //###################################################//
-int hash(char *key_type, union key key)
+int hash(char *key_type, union key key, int HASHSIZE)
 {
 	if(strcmp(key_type, "char") == 0)
 	{
@@ -125,24 +101,22 @@ int hash(char *key_type, union key key)
 	    
 	    return hashval % HASHSIZE;
 	}
-	else if(strcmp(key_type, "int") == 0)
+	if(strcmp(key_type, "int") == 0)
 	{
 		return key.int_key % HASHSIZE;
 	}
-	else
-	{
-		return -1;
-	}
+	
+	return -1;
 }
 
 
 //###################################################//
 //## SEARCH                                        ##//
 //###################################################//
-node *search(char *key_type, union key key)
+node *search(HashTable *self, char *key_type, union key key)
 {
 	node *p;
-	for(p = root[hash(key_type, key)]; p != NULL; p = p->next)
+	for(p = self->root[hash(key_type, key, self->HASHSIZE)]; p != NULL; p = p->next)
 	{
 		if(strcmp(key_type, "char") == 0) // if the type of the key is char
 		{
@@ -166,11 +140,11 @@ node *search(char *key_type, union key key)
 	return NULL;
 }
 
-node **previousEl(char *key_type, union key key)
+node **previousEl(HashTable *self, char *key_type, union key key)
 {
 	node *p;
-	node **previous = &root[hash(key_type, key)];
-	for(p = root[hash(key_type, key)]; p != NULL; p = p->next)
+	node **previous = &self->root[hash(key_type, key, self->HASHSIZE)];
+	for(p = self->root[hash(key_type, key, self->HASHSIZE)]; p != NULL; p = p->next)
 	{
 		if(strcmp(key_type, "char") == 0) // if the type of the key is char
 		{
@@ -201,10 +175,10 @@ node **previousEl(char *key_type, union key key)
 	}
 }
 
-node *lastEl(int hash) // search for last element if there is one
+node *lastEl(HashTable *self, int hash) // search for last element if there is one
 {
 	node *p;
-	for(p = root[hash]; p != NULL; p = p->next)
+	for(p = self->root[hash]; p != NULL; p = p->next)
 	{
 		if(p->next == NULL)
 		{
@@ -218,9 +192,9 @@ node *lastEl(int hash) // search for last element if there is one
 //###################################################//
 //## ADD                                           ##//
 //###################################################//
-int add(char *key_type, char *value_type, union key key, union value value)
+int add(HashTable *self, char *key_type, char *value_type, union key key, union value value)
 {
-	if(search(key_type, key) == NULL)
+	if(search(self, key_type, key) == NULL)
 	{
 		node *last;
 		node *p;
@@ -252,9 +226,9 @@ int add(char *key_type, char *value_type, union key key, union value value)
 		
 		p->next = NULL;
 		
-		if((last = lastEl(hash(key_type, key))) == NULL) // if the chain struct dosen't exist
+		if((last = lastEl(self, hash(key_type, key, self->HASHSIZE))) == NULL) // if the chain struct dosen't exist
 		{
-			root[hash(key_type, key)] = p;
+			self->root[hash(key_type, key, self->HASHSIZE)] = p;
 		} else
 		{
 			last->next = p;
@@ -268,16 +242,16 @@ int add(char *key_type, char *value_type, union key key, union value value)
 //###################################################//
 //## DELETE                                        ##//
 //###################################################//
-int del(char *key_type, union key key)
+int del(HashTable *self, char *key_type, union key key)
 {
 	if(valid_key_type(key_type))
 	{
 		node *p;
 		node **previous;
-		if((p = search(key_type, key)) != NULL) // se l'elemento esiste
+		if((p = search(self, key_type, key)) != NULL) // se l'elemento esiste
 		{
-			previous = previousEl(key_type, key);
-			*previous = p->next;;
+			previous = previousEl(self, key_type, key);
+			*previous = p->next;
 				
 			//completely free the node
 			free((void *) p);
@@ -319,12 +293,12 @@ void printEl(node *p)
 	printValue(p);
 }
 
-void printAllEl()
+void printAllEl(HashTable *self)
 {
 	node *p;
-	for(int i = 0; i < HASHSIZE; i++)
+	for(int i = 0; i < self->HASHSIZE; i++)
 	{
-		for(p = root[i]; p != NULL; p = p->next)
+		for(p = self->root[i]; p != NULL; p = p->next)
 		{
 			printEl(p);
 			printf("\n");
@@ -341,21 +315,25 @@ void printAllEl()
 //###################################################//
 //## MAIN                                          ##//
 //###################################################//
+
 void main()
 {
 	// example
-	initialize();
+	HashTable letters1;
+	init(&letters1);
 	
-	add("char", "char", char_key("ciao"), char_value("bella"));
-	add("int", "char", int_key(11), char_value("haha"));
-	add("char", "int", char_key("loo"), int_value(44));
-	add("int", "float", int_key(50), float_value(11.5));
-	add("char", "float", char_key("ciao:)"), float_value(33.66));
+	letters1.Add(&letters1, "char", "char", char_key("ciao"), char_value("bella"));
+	letters1.Add(&letters1, "int", "int", int_key(11), int_value(44));
 	
-	printAllEl();
-	
-	del("char", char_key("ciao"));
+	printAllEl(&letters1);
 	
 	printf("\n");
-	printAllEl();
+	
+	HashTable letters2;
+	init(&letters2);
+	
+	letters2.Add(&letters2, "char", "char", char_key("ciao2"), char_value("bella2"));
+	letters2.Add(&letters2, "int", "int", int_key(12), int_value(45));
+	
+	printAllEl(&letters2);
 }

@@ -1,6 +1,7 @@
 # C-HashTable
 ## how to start using it
-  - initialize the root array calling the initialize function ```initialize()```
+  - create an HashTable ```HashTable hashtable_name```
+  - initialize the HashTable ```init(hahstable_name)```
   - add some lements with the add function ```add()```
   - search an element with the search function ```search()```
   - delete an element with del function ```del()```
